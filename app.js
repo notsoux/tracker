@@ -1,13 +1,22 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
+const express = require('express');
+const path = require('path');
+const favicon = require('serve-favicon');
+const logger = require('morgan');
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
 
-var routes = require('./routes/index');
-var users = require('./routes/users');
+const routes = require('./routes/index');
+const track_routes = require('./routes/track');
 
+const dao = require( './dao/dao');
+const constant = require('./constant/Constant');
+
+dao.connect( function(){
+
+});
+
+const expressValidator = require('express-validator');
+const util = require('util');
 var app = express();
 
 // view engine setup
@@ -22,8 +31,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use(expressValidator());
+
 app.use('/', routes);
-app.use('/users', users);
+app.use('/track', track_routes);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -38,10 +49,27 @@ app.use(function(req, res, next) {
 // will print stacktrace
 if (app.get('env') === 'development') {
   app.use(function(err, req, res, next) {
+    let renderMessage = err.message;
+    let errorMessage = {};
+    switch( err.code){
+      case constant.OBJECTID_NOT_VALID_FORMAT:
+      case constant.VALIDATION_ERROR:{
+        //renderMessage = 'Validation error';
+        //errorMessage = util.inspect( err);
+        res.status(err.status || 500);
+        res.send( JSON.stringify( err));
+        return;
+        break;
+      }
+      default:{
+        errorMessage = err;
+      }
+
+    }
     res.status(err.status || 500);
     res.render('error', {
-      message: err.message,
-      error: err
+      message: renderMessage,
+      error: errorMessage
     });
   });
 }
